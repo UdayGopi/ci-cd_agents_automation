@@ -16,7 +16,7 @@ class GroqService {
     try {
       const completion = await this.client.chat.completions.create({
         messages: messages as any,
-        model: "mixtral-8x7b-32768",
+        model: "llama3-8b-8192",
         temperature: 0.7,
         max_tokens: 1024,
         top_p: 1,

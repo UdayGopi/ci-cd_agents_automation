@@ -42,6 +42,10 @@ export default function AIInsights() {
     refetchInterval: 60000,
   });
 
+  // Ensure data is always arrays to prevent filter/slice errors
+  const safeInsights = Array.isArray(insights) ? insights : [];
+  const safeCostAnalysis = Array.isArray(costAnalysis) ? costAnalysis : [];
+
   const analyzePipelineMutation = useMutation({
     mutationFn: async (pipelineId: number) => {
       const response = await apiRequest("POST", "/api/groq/analyze-pipeline", { pipelineId });
@@ -95,10 +99,10 @@ export default function AIInsights() {
     }
   };
 
-  const optimizationInsights = insights.filter((insight: AIInsight) => insight.type === "optimization");
-  const troubleshootingInsights = insights.filter((insight: AIInsight) => insight.type === "troubleshooting");
-  const securityInsights = insights.filter((insight: AIInsight) => insight.type === "security");
-  const costInsights = [...insights.filter((insight: AIInsight) => insight.type === "cost-optimization"), ...costAnalysis];
+  const optimizationInsights = safeInsights.filter((insight: AIInsight) => insight.type === "optimization");
+  const troubleshootingInsights = safeInsights.filter((insight: AIInsight) => insight.type === "troubleshooting");
+  const securityInsights = safeInsights.filter((insight: AIInsight) => insight.type === "security");
+  const costInsights = [...safeInsights.filter((insight: AIInsight) => insight.type === "cost-optimization"), ...safeCostAnalysis];
 
   return (
     <div className="space-y-6">
@@ -125,7 +129,7 @@ export default function AIInsights() {
               <div>
                 <p className="text-sm text-slate-600 dark:text-slate-400">Total Insights</p>
                 <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">
-                  {insights.length}
+                  {safeInsights.length}
                 </p>
               </div>
             </div>
@@ -194,7 +198,7 @@ export default function AIInsights() {
               <CardContent>
                 <ScrollArea className="h-[600px] pr-4">
                   <div className="space-y-4">
-                    {insights.map((insight: AIInsight, index: number) => (
+                    {safeInsights.map((insight: AIInsight, index: number) => (
                       <div 
                         key={index}
                         className="p-4 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer transition-colors"

@@ -45,6 +45,9 @@ export default function AIChat() {
     refetchInterval: 30000, // Refresh every 30 seconds
   });
 
+  // Ensure insights is always an array
+  const safeInsights = Array.isArray(insights) ? insights : [];
+
   // Chat mutation
   const chatMutation = useMutation({
     mutationFn: async (message: string) => {
@@ -153,7 +156,7 @@ export default function AIChat() {
               Latest AI Insights
             </h4>
             <div className="space-y-2">
-              {insights.slice(0, 2).map((insight: AIInsight, index: number) => (
+              {safeInsights.slice(0, 2).map((insight: AIInsight, index: number) => (
                 <div
                   key={index}
                   className={cn(

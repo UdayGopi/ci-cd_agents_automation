@@ -42,6 +42,13 @@ export default function Dashboard() {
     refetchInterval: 30000,
   });
 
+  // Ensure data is always arrays to prevent slice errors
+  const safeBuilds = Array.isArray(builds) ? builds : [];
+  const safeDeployments = Array.isArray(deployments) ? deployments : [];
+  const safeInsights = Array.isArray(insights) ? insights : [];
+  const safeAgents = Array.isArray(agents) ? agents : [];
+  const safePipelines = Array.isArray(pipelines) ? pipelines : [];
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "success":
@@ -226,7 +233,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {builds.slice(0, 3).map((build: any) => (
+              {safeBuilds.slice(0, 3).map((build: any) => (
                 <div key={build.id} className="flex items-center space-x-3">
                   <div className="w-8 h-8 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center">
                     {getStatusIcon(build.status)}
@@ -263,7 +270,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {insights.slice(0, 3).map((insight: any, index: number) => (
+              {safeInsights.slice(0, 3).map((insight: any, index: number) => (
                 <div 
                   key={index}
                   className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700"
@@ -299,7 +306,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {deployments.slice(0, 3).map((deployment: any) => (
+              {safeDeployments.slice(0, 3).map((deployment: any) => (
                 <div key={deployment.id} className="flex items-center justify-between p-4 border border-slate-200 dark:border-slate-700 rounded-lg">
                   <div className="flex items-center space-x-4">
                     <div className="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-lg flex items-center justify-center">
