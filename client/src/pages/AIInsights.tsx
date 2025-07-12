@@ -111,12 +111,12 @@ export default function AIInsights() {
         <div>
           <h2 className="text-3xl font-bold text-slate-900 dark:text-slate-100">AI Insights</h2>
           <p className="text-slate-600 dark:text-slate-400 mt-1">
-            Powered by Groq AI for intelligent pipeline optimization and troubleshooting
+            Advanced AI analytics for continuous improvement and automated optimization
           </p>
         </div>
         <div className="flex items-center space-x-2">
           <Bot className="w-5 h-5 text-indigo-500" />
-          <span className="text-sm text-indigo-500 font-medium">Groq AI</span>
+          <span className="text-sm text-indigo-500 font-medium">Smart AI</span>
         </div>
       </div>
 

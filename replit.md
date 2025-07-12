@@ -90,6 +90,33 @@ The application uses a relational PostgreSQL database with the following entitie
 - **Environment Variables**: DATABASE_URL and GROQ_API_KEY required
 - **Health Checks**: `/api/health` endpoint for monitoring
 
+### Multi-Platform Deployment Support
+
+#### 1. Render Deployment (Easiest)
+- **Configuration**: `render.yaml` with automatic database provisioning
+- **Features**: Auto-deploy on git push, managed PostgreSQL, SSL certificates
+- **Best For**: Quick deployment, staging environments, small to medium scale
+
+#### 2. Docker to AWS ECS (AWS Native)
+- **Configuration**: `Dockerfile`, ECS task definitions, and deployment scripts
+- **Features**: Auto-scaling, load balancing, AWS service integration
+- **Components**: ECR registry, ECS Fargate, Application Load Balancer
+- **Best For**: AWS-centric infrastructure, enterprise environments
+
+#### 3. Kubernetes (Maximum Flexibility)
+- **Configuration**: Complete K8s manifests with HPA, ingress, and monitoring
+- **Features**: Multi-cloud support, advanced scaling, GitOps workflows
+- **Components**: Deployments, services, secrets, ingress controllers
+- **Best For**: Complex deployments, multi-cloud, advanced orchestration needs
+
+### Deployment Files Created
+- `render.yaml` - Render platform configuration
+- `Dockerfile` - Multi-stage container build
+- `docker-compose.yml` - Local development with containers
+- `aws/` - ECS deployment configurations and scripts
+- `k8s/` - Complete Kubernetes manifests
+- `DEPLOYMENT_GUIDE.md` - Detailed deployment instructions
+
 ### Configuration Management
 - **Environment Variables**: Database URL and API keys through environment variables
 - **Path Aliases**: TypeScript path mapping for clean imports
