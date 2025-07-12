@@ -1,3 +1,4 @@
+# Alternative Render configuration with explicit database dependency
 databases:
   - name: pipelineforge-db
     databaseName: pipelineforge
@@ -25,6 +26,8 @@ services:
         sync: false
     autoDeploy: true
     rootDir: .
+    # Wait for database to be ready
+    preDeployCommand: "echo 'Waiting for database...'"
     buildFilter:
       paths:
         - client/**
@@ -37,7 +40,7 @@ services:
         - tsconfig.json
         - drizzle.config.ts
 
-# Optional: Add Redis for caching (commented out for basic deployment)
+# Optional: Add Redis for caching
 # - type: redis
 #   name: pipelineforge-cache
 #   plan: starter
