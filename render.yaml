@@ -1,41 +1,47 @@
-databases:
-  - name: pipelineforge-db
-    databaseName: pipelineforge
-    user: pipelineforge_user
-    plan: starter
+# Render.yaml temporarily disabled for manual setup
+# Use Render dashboard to create services manually for more reliable deployment
+# 
+# After successful manual deployment, you can re-enable this configuration
+# by uncommenting the sections below:
 
-services:
-  - type: web
-    name: pipelineforge
-    env: node
-    plan: starter
-    buildCommand: npm install && npm run build
-    startCommand: npm start
-    healthCheckPath: /api/health
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: PORT
-        value: 10000
-      - key: DATABASE_URL
-        fromDatabase:
-          name: pipelineforge-db
-          property: connectionString
-      - key: GROQ_API_KEY
-        sync: false
-    autoDeploy: true
-    rootDir: .
-    buildFilter:
-      paths:
-        - client/**
-        - server/**
-        - shared/**
-        - package.json
-        - package-lock.json
-        - vite.config.ts
-        - tailwind.config.ts
-        - tsconfig.json
-        - drizzle.config.ts
+# databases:
+#   - name: pipelineforge-db
+#     databaseName: pipelineforge
+#     user: pipelineforge_user
+#     plan: starter
+
+# services:
+#   - type: web
+#     name: pipelineforge
+#     env: node
+#     plan: starter
+#     buildCommand: npm install && npm run build
+#     startCommand: npm start
+#     healthCheckPath: /api/health
+#     envVars:
+#       - key: NODE_ENV
+#         value: production
+#       - key: PORT
+#         value: 10000
+#       - key: DATABASE_URL
+#         fromDatabase:
+#           name: pipelineforge-db
+#           property: connectionString
+#       - key: GROQ_API_KEY
+#         sync: false
+#     autoDeploy: true
+#     rootDir: .
+#     buildFilter:
+#       paths:
+#         - client/**
+#         - server/**
+#         - shared/**
+#         - package.json
+#         - package-lock.json
+#         - vite.config.ts
+#         - tailwind.config.ts
+#         - tsconfig.json
+#         - drizzle.config.ts
 
 # Optional: Add Redis for caching (commented out for basic deployment)
 # - type: redis

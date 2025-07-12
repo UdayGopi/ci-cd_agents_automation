@@ -2,7 +2,9 @@
 
 ## Issue: DATABASE_URL not set during deployment
 
-This is a common issue when deploying to Render where the database and web service aren't properly synchronized.
+**Current Status**: No database environment variables found (`Available environment variables: []`)
+
+This indicates Render is not linking the database to the web service. This is a common issue when using render.yaml for the first deployment.
 
 ### Solution Steps:
 
