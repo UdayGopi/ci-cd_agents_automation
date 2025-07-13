@@ -28,11 +28,19 @@ interface IStorage {
   getDeployments(): Promise<Deployment[]>;
   getDeployment(id: number): Promise<Deployment | undefined>;
   createDeployment(insertDeployment: InsertDeployment): Promise<Deployment>;
+  updateDeployment(id: number, update: Partial<InsertDeployment>): Promise<Deployment>;
   
   // Agent management
   getAgents(): Promise<Agent[]>;
   getAgent(id: number): Promise<Agent | undefined>;
   createAgent(insertAgent: InsertAgent): Promise<Agent>;
+  
+  // Pipeline execution management
+  createPipelineExecution(data: { pipelineId: number; status: string }): Promise<{ id: string }>;
+  getPipelineExecution(id: string): Promise<{ id: string; status: string; pipeline: Pipeline }>;
+  
+  // Cost management
+  getHistoricalCosts(): Promise<{ date: Date; cost: number }[]>;
   
   // Statistics
   getStats(): Promise<any>;
@@ -111,6 +119,15 @@ export class DatabaseStorage implements IStorage {
     return deployment;
   }
 
+  async updateDeployment(id: number, update: Partial<InsertDeployment>): Promise<Deployment> {
+    const [deployment] = await db
+      .update(deployments)
+      .set(update)
+      .where(eq(deployments.id, id))
+      .returning();
+    return deployment;
+  }
+
   // Agent management
   async getAgents(): Promise<Agent[]> {
     return await db.select().from(agents);
@@ -127,6 +144,47 @@ export class DatabaseStorage implements IStorage {
       .values(insertAgent)
       .returning();
     return agent;
+  }
+
+  // Pipeline execution management
+  async createPipelineExecution(data: { pipelineId: number; status: string }): Promise<{ id: string }> {
+    const [execution] = await db
+      .insert(builds)
+      .values({
+        pipelineId: data.pipelineId,
+        status: data.status,
+        buildNumber: 1, // You might want to implement auto-incrementing build numbers
+        startTime: new Date(),
+      })
+      .returning();
+    return { id: execution.id.toString() };
+  }
+
+  async getPipelineExecution(id: string): Promise<{ id: string; status: string; pipeline: Pipeline }> {
+    const [execution] = await db
+      .select()
+      .from(builds)
+      .where(eq(builds.id, parseInt(id)))
+      .leftJoin(pipelines, eq(builds.pipelineId, pipelines.id));
+    
+    if (!execution) throw new Error('Execution not found');
+    
+    return {
+      id: execution.builds.id.toString(),
+      status: execution.builds.status,
+      pipeline: execution.pipelines
+    };
+  }
+
+  // Cost management
+  async getHistoricalCosts(): Promise<{ date: Date; cost: number }[]> {
+    // This is a placeholder implementation. You should implement proper cost tracking
+    const deployments = await this.getDeployments();
+    const costs = deployments.map(d => ({
+      date: d.deployedAt || new Date(),
+      cost: Math.random() * 100 // Placeholder cost calculation
+    }));
+    return costs;
   }
 
   // Statistics

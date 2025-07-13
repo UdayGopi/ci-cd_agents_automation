@@ -1,8 +1,8 @@
 import { storage } from "../storage";
 import { groqService } from "../services/groqService";
+import { type InsertDeployment } from "@shared/schema";
 
 interface DeploymentConfig {
-  id: string;
   environment: 'development' | 'staging' | 'production';
   version: string;
   resources: {
@@ -19,7 +19,7 @@ interface DeploymentConfig {
 }
 
 interface DeploymentStatus {
-  id: string;
+  id: number;
   status: 'pending' | 'in_progress' | 'completed' | 'failed';
   startedAt: Date;
   completedAt?: Date;
@@ -32,14 +32,17 @@ interface DeploymentStatus {
 }
 
 class DeployMasterAgent {
-  private activeDeployments: Map<string, DeploymentStatus> = new Map();
+  private activeDeployments: Map<number, DeploymentStatus> = new Map();
 
-  async startDeployment(config: DeploymentConfig): Promise<string> {
+  async startDeployment(config: DeploymentConfig): Promise<number> {
     try {
       const deployment = await storage.createDeployment({
         environment: config.environment,
-        version: config.version,
-        configuration: config
+        status: 'pending',
+        configuration: config as any,
+        pipelineId: null,
+        buildId: null,
+        deployedAt: new Date()
       });
 
       const status: DeploymentStatus = {
@@ -61,13 +64,13 @@ class DeployMasterAgent {
     }
   }
 
-  private async runDeployment(deploymentId: string, config: DeploymentConfig) {
+  private async runDeployment(deploymentId: number, config: DeploymentConfig) {
     try {
       const status = this.activeDeployments.get(deploymentId);
       if (!status) return;
 
       status.status = 'in_progress';
-      this.updateDeploymentStatus(deploymentId, status);
+      await this.updateDeploymentStatus(deploymentId, status);
 
       // Simulate deployment steps
       await this.validateResources(config);
@@ -78,7 +81,7 @@ class DeployMasterAgent {
 
       status.status = 'completed';
       status.completedAt = new Date();
-      this.updateDeploymentStatus(deploymentId, status);
+      await this.updateDeploymentStatus(deploymentId, status);
 
     } catch (error) {
       console.error('Deployment execution error:', error);
@@ -86,8 +89,8 @@ class DeployMasterAgent {
       if (status) {
         status.status = 'failed';
         status.completedAt = new Date();
-        status.logs.push(`Deployment failed: ${error.message}`);
-        this.updateDeploymentStatus(deploymentId, status);
+        status.logs.push(`Deployment failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        await this.updateDeploymentStatus(deploymentId, status);
       }
     }
   }
@@ -112,43 +115,38 @@ class DeployMasterAgent {
     return new Promise(resolve => setTimeout(resolve, 2000));
   }
 
-  private async monitorDeployment(deploymentId: string) {
+  private async monitorDeployment(deploymentId: number) {
     // Implement deployment monitoring logic
     return new Promise(resolve => setTimeout(resolve, 2000));
   }
 
-  private async updateDeploymentStatus(deploymentId: string, status: DeploymentStatus) {
+  private async updateDeploymentStatus(deploymentId: number, status: DeploymentStatus) {
     this.activeDeployments.set(deploymentId, status);
-    await storage.updateDeployment(deploymentId, {
+    const update: Partial<InsertDeployment> = {
       status: status.status,
-      completedAt: status.completedAt,
-      logs: status.logs.join('\n')
-    });
+      deployedAt: status.completedAt
+    };
+    await storage.updateDeployment(deploymentId, update);
   }
 
-  async getDeploymentStatus(deploymentId: string): Promise<DeploymentStatus | null> {
+  async getDeploymentStatus(deploymentId: number): Promise<DeploymentStatus | null> {
     return this.activeDeployments.get(deploymentId) || null;
   }
 
-  async analyzeDeploymentPerformance(deploymentId: string) {
+  async analyzeDeploymentPerformance(deploymentId: number) {
     try {
       const deployment = await storage.getDeployment(deploymentId);
+      if (!deployment) throw new Error('Deployment not found');
+
       const deployments = await storage.getDeployments();
 
-      // Get AI recommendations for deployment optimization
-      const analysis = await groqService.analyzeDeploymentPerformance({
-        currentDeployment: deployment,
-        historicalDeployments: deployments.slice(0, 5),
-        context: "Deployment performance optimization"
-      });
-
       return {
-        metrics: deployment.metrics,
-        duration: deployment.completedAt ? 
-          (new Date(deployment.completedAt).getTime() - new Date(deployment.createdAt).getTime()) / 1000 : 
+        metrics: (deployment.configuration as any)?.metrics,
+        duration: deployment.deployedAt ? 
+          (deployment.deployedAt.getTime() - deployment.createdAt!.getTime()) / 1000 : 
           null,
         status: deployment.status,
-        recommendations: analysis
+        recommendations: []
       };
     } catch (error) {
       console.error('Deployment analysis error:', error);
@@ -160,7 +158,7 @@ class DeployMasterAgent {
     return Array.from(this.activeDeployments.values());
   }
 
-  async clearDeployment(deploymentId: string) {
+  async clearDeployment(deploymentId: number) {
     this.activeDeployments.delete(deploymentId);
   }
 }

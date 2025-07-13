@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.json",
+  "include": ["server/**/*", "shared/**/*"],
+  "exclude": ["node_modules", "build", "dist", "**/*.test.ts", "client"],
+  "compilerOptions": {
+    "outDir": "dist",
+    "module": "CommonJS",
+    "noEmit": false,
+    "jsx": "react-jsx",
+    "moduleResolution": "node",
+    "allowImportingTsExtensions": false,
+    "types": ["node"],
+    "paths": {
+      "@shared/*": ["./shared/*"]
+    }
+  }
+} 

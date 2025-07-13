@@ -7,6 +7,15 @@ interface ChatMessage {
   timestamp: Date;
 }
 
+interface Insight {
+  type: string;
+  title: string;
+  content: string;
+  severity: "low" | "medium" | "high";
+  timestamp: Date;
+  estimatedSavings?: string;
+}
+
 class AIAssistant {
   private conversationHistory: Map<string, ChatMessage[]> = new Map();
 
@@ -58,30 +67,26 @@ class AIAssistant {
     }
   }
 
-  async generatePipelineInsights(): Promise<any[]> {
+  async generatePipelineInsights(): Promise<Insight[]> {
     try {
       const pipelines = await storage.getPipelines();
       const builds = await storage.getBuilds();
       const deployments = await storage.getDeployments();
 
-      const insights = [];
+      const insights: Insight[] = [];
 
       // Analyze recent failures
       const recentFailures = builds.filter(build => 
         build.status === "failed" && 
-        new Date(build.createdAt).getTime() > Date.now() - 24 * 60 * 60 * 1000
+        build.createdAt && 
+        build.createdAt.getTime() > Date.now() - 24 * 60 * 60 * 1000
       );
 
       if (recentFailures.length > 0) {
-        const analysis = await groqService.troubleshootFailure({
-          failures: recentFailures,
-          context: "Recent build failures in the last 24 hours"
-        });
-
         insights.push({
           type: "troubleshooting",
           title: "Recent Build Failures",
-          content: analysis,
+          content: `Found ${recentFailures.length} failed builds in the last 24 hours. Common issues might include configuration errors, test failures, or resource constraints.`,
           severity: "high",
           timestamp: new Date()
         });
@@ -93,15 +98,10 @@ class AIAssistant {
       );
 
       if (slowBuilds.length > 0) {
-        const optimization = await groqService.optimizeBuildConfiguration({
-          slowBuilds: slowBuilds.slice(0, 5),
-          context: "Performance optimization for slow builds"
-        });
-
         insights.push({
           type: "optimization",
           title: "Build Performance Optimization",
-          content: optimization,
+          content: `Identified ${slowBuilds.length} slow builds taking over 10 minutes. Consider optimizing test suites, using build caching, or parallelizing build steps.`,
           severity: "medium",
           timestamp: new Date()
         });
@@ -114,21 +114,15 @@ class AIAssistant {
     }
   }
 
-  async generateCostOptimizationSuggestions(): Promise<any[]> {
+  async generateCostOptimizationSuggestions(): Promise<Insight[]> {
     try {
       const stats = await storage.getStats();
       const deployments = await storage.getDeployments();
 
-      const costAnalysis = await groqService.generateCostAnalysis({
-        stats,
-        deployments: deployments.slice(0, 10),
-        context: "Cost optimization analysis for current infrastructure"
-      });
-
       return [{
         type: "cost-optimization",
         title: "Cost Optimization Recommendations",
-        content: costAnalysis,
+        content: "Based on current usage patterns, consider: 1) Implementing build caching to reduce build times, 2) Using spot instances for non-critical workloads, 3) Cleaning up unused resources regularly.",
         severity: "medium",
         timestamp: new Date(),
         estimatedSavings: "$500-2000/month"

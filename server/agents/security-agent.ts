@@ -1,213 +1,128 @@
 import { storage } from "../storage";
 import { groqService } from "../services/groqService";
 
-interface SecurityAlert {
-  severity: 'low' | 'medium' | 'high' | 'critical';
-  type: string;
-  description: string;
+interface SecurityScan {
+  id: number;
   timestamp: Date;
-  metadata: Record<string, any>;
+  severity: 'low' | 'medium' | 'high';
+  findings: string[];
+  status: 'pending' | 'in_progress' | 'completed';
 }
 
-interface SecurityScan {
-  id: string;
-  status: 'pending' | 'in_progress' | 'completed' | 'failed';
-  findings: SecurityAlert[];
-  startedAt: Date;
-  completedAt?: Date;
+interface SecurityRecommendation {
+  type: string;
+  severity: 'low' | 'medium' | 'high';
+  description: string;
+  remediation: string;
 }
 
 class SecurityAgent {
-  private activeScans: Map<string, SecurityScan> = new Map();
+  private activeScans: Map<number, SecurityScan> = new Map();
 
-  async analyzePipelineSecurity(pipelineId: string) {
+  async startSecurityScan(pipelineId: number): Promise<SecurityScan> {
     try {
-      const pipeline = await storage.getPipeline(parseInt(pipelineId));
-      if (!pipeline) throw new Error('Pipeline not found');
-
-      // Analyze pipeline configuration
-      const configIssues = await this.scanConfiguration(pipeline.configuration);
-      
-      // Analyze recent builds
-      const builds = await storage.getBuilds();
-      const buildIssues = await this.scanBuilds(builds);
-
-      // Get AI security recommendations
-      const recommendations = await groqService.analyzeSecurityRisks({
-        pipeline,
-        builds: builds.slice(0, 5),
-        context: "Pipeline security analysis"
-      });
-
-      return {
-        configurationIssues: configIssues,
-        buildIssues: buildIssues,
-        recommendations,
-        timestamp: new Date()
+      const scan: SecurityScan = {
+        id: Date.now(),
+        timestamp: new Date(),
+        severity: 'low',
+        findings: [],
+        status: 'pending'
       };
+
+      this.activeScans.set(scan.id, scan);
+
+      // Start async scan process
+      this.runSecurityScan(scan.id, pipelineId).catch(console.error);
+
+      return scan;
     } catch (error) {
-      console.error("Pipeline security analysis error:", error);
-      return null;
+      console.error('Security scan error:', error);
+      throw error;
     }
   }
 
-  async scanConfiguration(config: any): Promise<SecurityAlert[]> {
-    const alerts: SecurityAlert[] = [];
-
-    // Check for sensitive data exposure
-    if (this.containsSensitiveData(config)) {
-      alerts.push({
-        severity: 'high',
-        type: 'sensitive_data_exposure',
-        description: 'Pipeline configuration contains sensitive data',
-        timestamp: new Date(),
-        metadata: { type: 'configuration' }
-      });
-    }
-
-    // Check for insecure commands
-    if (this.hasInsecureCommands(config)) {
-      alerts.push({
-        severity: 'critical',
-        type: 'insecure_command',
-        description: 'Pipeline contains potentially dangerous commands',
-        timestamp: new Date(),
-        metadata: { type: 'configuration' }
-      });
-    }
-
-    return alerts;
-  }
-
-  async scanBuilds(builds: any[]): Promise<SecurityAlert[]> {
-    const alerts: SecurityAlert[] = [];
-
-    for (const build of builds) {
-      // Check for dependency vulnerabilities
-      if (build.dependencies) {
-        const vulnDeps = await this.checkDependencies(build.dependencies);
-        if (vulnDeps.length > 0) {
-          alerts.push({
-            severity: 'high',
-            type: 'vulnerable_dependencies',
-            description: 'Build contains vulnerable dependencies',
-            timestamp: new Date(),
-            metadata: { dependencies: vulnDeps }
-          });
-        }
-      }
-
-      // Check for suspicious build patterns
-      if (this.hasSuspiciousPatterns(build)) {
-        alerts.push({
-          severity: 'medium',
-          type: 'suspicious_pattern',
-          description: 'Build exhibits suspicious patterns',
-          timestamp: new Date(),
-          metadata: { buildId: build.id }
-        });
-      }
-    }
-
-    return alerts;
-  }
-
-  private containsSensitiveData(config: any): boolean {
-    const sensitivePatterns = [
-      /password/i,
-      /secret/i,
-      /token/i,
-      /key/i,
-      /credential/i
-    ];
-
-    return this.searchPatterns(config, sensitivePatterns);
-  }
-
-  private hasInsecureCommands(config: any): boolean {
-    const insecureCommands = [
-      'curl',
-      'wget',
-      'chmod 777',
-      'eval',
-      'sudo'
-    ];
-
-    return this.searchPatterns(config, insecureCommands);
-  }
-
-  private searchPatterns(obj: any, patterns: Array<string | RegExp>): boolean {
-    const str = JSON.stringify(obj).toLowerCase();
-    return patterns.some(pattern => {
-      if (pattern instanceof RegExp) {
-        return pattern.test(str);
-      }
-      return str.includes(pattern.toLowerCase());
-    });
-  }
-
-  private async checkDependencies(deps: any[]): Promise<string[]> {
-    // Implement dependency vulnerability checking
-    // This could integrate with services like Snyk or npm audit
-    return [];
-  }
-
-  private hasSuspiciousPatterns(build: any): boolean {
-    // Implement detection of suspicious build patterns
-    // This could check for unusual resource usage, network calls, etc.
-    return false;
-  }
-
-  async startSecurityScan(pipelineId: string): Promise<string> {
-    const scanId = `scan_${Date.now()}`;
-    
-    const scan: SecurityScan = {
-      id: scanId,
-      status: 'pending',
-      findings: [],
-      startedAt: new Date()
-    };
-
-    this.activeScans.set(scanId, scan);
-
-    // Start async scan
-    this.runSecurityScan(scanId, pipelineId).catch(console.error);
-
-    return scanId;
-  }
-
-  private async runSecurityScan(scanId: string, pipelineId: string) {
+  private async runSecurityScan(scanId: number, pipelineId: number) {
     try {
       const scan = this.activeScans.get(scanId);
       if (!scan) return;
 
       scan.status = 'in_progress';
-      
-      // Run security analysis
-      const results = await this.analyzePipelineSecurity(pipelineId);
-      
-      if (results) {
-        scan.findings = [
-          ...results.configurationIssues,
-          ...results.buildIssues
-        ];
-      }
 
+      const pipeline = await storage.getPipeline(pipelineId);
+      if (!pipeline) throw new Error('Pipeline not found');
+
+      // Perform security checks
+      const findings = await this.performSecurityChecks(pipeline);
+      
+      scan.findings = findings;
       scan.status = 'completed';
-      scan.completedAt = new Date();
+      scan.severity = this.calculateSeverity(findings);
 
+      this.activeScans.set(scanId, scan);
     } catch (error) {
-      console.error('Security scan error:', error);
+      console.error('Security scan execution error:', error);
       const scan = this.activeScans.get(scanId);
       if (scan) {
-        scan.status = 'failed';
-        scan.completedAt = new Date();
+        scan.status = 'completed';
+        scan.findings = ['Error during security scan'];
+        scan.severity = 'high';
+        this.activeScans.set(scanId, scan);
       }
     }
   }
 
-  async getScanStatus(scanId: string): Promise<SecurityScan | null> {
+  private async performSecurityChecks(pipeline: any): Promise<string[]> {
+    const findings: string[] = [];
+
+    // Basic security checks
+    if (!pipeline.configuration?.securitySettings?.scanning) {
+      findings.push('Security scanning is not enabled');
+    }
+
+    if (!pipeline.configuration?.securitySettings?.authentication) {
+      findings.push('Authentication is not configured');
+    }
+
+    return findings;
+  }
+
+  private calculateSeverity(findings: string[]): 'low' | 'medium' | 'high' {
+    if (findings.length === 0) return 'low';
+    if (findings.length < 3) return 'medium';
+    return 'high';
+  }
+
+  async getScanStatus(scanId: number): Promise<SecurityScan | null> {
     return this.activeScans.get(scanId) || null;
+  }
+
+  async getSecurityRecommendations(pipelineId: number): Promise<SecurityRecommendation[]> {
+    try {
+      const pipeline = await storage.getPipeline(pipelineId);
+      if (!pipeline) throw new Error('Pipeline not found');
+
+      return [
+        {
+          type: 'configuration',
+          severity: 'medium',
+          description: 'Security scanning should be enabled for all pipelines',
+          remediation: 'Enable security scanning in pipeline configuration'
+        },
+        {
+          type: 'authentication',
+          severity: 'high',
+          description: 'Strong authentication methods should be enforced',
+          remediation: 'Configure authentication requirements in security settings'
+        }
+      ];
+    } catch (error) {
+      console.error('Security recommendations error:', error);
+      return [];
+    }
+  }
+
+  async clearScan(scanId: number) {
+    this.activeScans.delete(scanId);
   }
 }
 

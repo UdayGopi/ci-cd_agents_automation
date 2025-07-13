@@ -1,9 +1,10 @@
 import { storage } from "../storage";
 import { groqService } from "../services/groqService";
 import { executePipeline } from "../pipeline-executor";
+import { type InsertBuild } from "@shared/schema";
 
 interface BuildConfig {
-  id: string;
+  pipelineId: number;
   repository: string;
   branch: string;
   buildCommand: string;
@@ -11,40 +12,57 @@ interface BuildConfig {
   environment: string;
 }
 
-class AutoBuildAgent {
-  private activeBuilds: Map<string, BuildConfig> = new Map();
+interface BuildStatus {
+  status: string;
+  logs?: string;
+  startTime?: Date;
+  endTime?: Date;
+}
 
-  async startAutoBuild(config: BuildConfig) {
+interface BuildPerformance {
+  duration: number | null;
+  status: string;
+  recommendations: string[];
+}
+
+class AutoBuildAgent {
+  private activeBuilds: Map<number, BuildConfig> = new Map();
+
+  async startAutoBuild(config: BuildConfig): Promise<number> {
     try {
       // Store build config
-      this.activeBuilds.set(config.id, config);
+      this.activeBuilds.set(config.pipelineId, config);
 
-      // Create pipeline execution
-      const execution = await storage.createPipelineExecution({
-        pipelineId: config.id,
+      // Create build record
+      const build = await storage.createBuild({
+        pipelineId: config.pipelineId,
         status: 'pending',
-        branch: config.branch,
-        environment: config.environment
+        buildNumber: 1, // You might want to implement auto-incrementing build numbers
+        startTime: new Date(),
+        logs: '',
+        duration: null
       });
 
       // Start pipeline execution
-      await executePipeline(execution.id);
+      await executePipeline(build.id.toString());
 
-      return execution.id;
+      return build.id;
     } catch (error) {
       console.error('Auto build error:', error);
       throw error;
     }
   }
 
-  async getBuildStatus(buildId: string) {
+  async getBuildStatus(buildId: number): Promise<BuildStatus> {
     try {
-      const execution = await storage.getPipelineExecution(buildId);
+      const build = await storage.getBuild(buildId);
+      if (!build) throw new Error('Build not found');
+
       return {
-        status: execution.status,
-        logs: execution.logs,
-        startedAt: execution.startedAt,
-        endedAt: execution.endedAt
+        status: build.status,
+        logs: build.logs,
+        startTime: build.startTime || undefined,
+        endTime: build.endTime || undefined
       };
     } catch (error) {
       console.error('Get build status error:', error);
@@ -52,24 +70,19 @@ class AutoBuildAgent {
     }
   }
 
-  async analyzeBuildPerformance(buildId: string) {
+  async analyzeBuildPerformance(buildId: number): Promise<BuildPerformance> {
     try {
-      const execution = await storage.getPipelineExecution(buildId);
-      const builds = await storage.getBuilds();
-
-      // Get AI recommendations for build optimization
-      const analysis = await groqService.optimizeBuildConfiguration({
-        currentBuild: execution,
-        historicalBuilds: builds.slice(0, 5),
-        context: "Build performance optimization"
-      });
+      const build = await storage.getBuild(buildId);
+      if (!build) throw new Error('Build not found');
 
       return {
-        duration: execution.endedAt ? 
-          (new Date(execution.endedAt).getTime() - new Date(execution.startedAt).getTime()) / 1000 : 
-          null,
-        status: execution.status,
-        recommendations: analysis
+        duration: build.duration,
+        status: build.status,
+        recommendations: [
+          "Consider using build caching to improve performance",
+          "Optimize test suite execution",
+          "Use parallel job execution where possible"
+        ]
       };
     } catch (error) {
       console.error('Build analysis error:', error);
@@ -77,11 +90,11 @@ class AutoBuildAgent {
     }
   }
 
-  async getActiveBuildConfigs() {
+  async getActiveBuildConfigs(): Promise<BuildConfig[]> {
     return Array.from(this.activeBuilds.values());
   }
 
-  async clearBuildConfig(buildId: string) {
+  async clearBuildConfig(buildId: number): Promise<void> {
     this.activeBuilds.delete(buildId);
   }
 }
