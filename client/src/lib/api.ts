@@ -8,6 +8,8 @@ export const api = {
   register: (userData: { username: string; password: string }) =>
     apiRequest("POST", "/api/auth/register", userData),
 
+  logout: () => apiRequest("POST", "/api/auth/logout"),
+
   // Pipelines
   getPipelines: () => apiRequest("GET", "/api/pipelines"),
   createPipeline: (pipeline: any) => apiRequest("POST", "/api/pipelines", pipeline),

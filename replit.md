@@ -8,6 +8,22 @@ PipelineForge is a full-stack web application that automates Continuous Integrat
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes
+
+- ✅ Implemented complete authentication system with login/signup and session management
+- ✅ Added project creation and management features with real-time updates
+- ✅ Added Security dashboard with vulnerability tracking, compliance monitoring, and security trends
+- ✅ Created Cost Analytics page with cost breakdown, optimization recommendations, and forecasting
+- ✅ Built comprehensive Monitoring dashboard with system health, agents status, and real-time logs
+- ✅ Implemented Teams management with CRUD operations and team collaboration features
+- ✅ Added Settings page with profile, notifications, security, integrations, and preferences
+- ✅ Created comprehensive Tech Overview document with enhanced UI, colors, and symbols
+- ✅ Updated router to include all new pages and fixed navigation issues
+- ✅ Enhanced sidebar with proper navigation links and icons
+- ✅ Added comprehensive API endpoints for teams, compliance, metrics, and audit logs
+- ✅ Integrated GitLab and Bitbucket webhook support alongside GitHub
+- ✅ Implemented multi-cloud deployment methods in DeployMaster agent
+
 ## System Architecture
 
 ### Frontend Architecture
@@ -22,18 +38,46 @@ Preferred communication style: Simple, everyday language.
 - **Runtime**: Node.js with Express.js server using TypeScript and ESM modules
 - **Database**: PostgreSQL with Drizzle ORM for type-safe database operations
 - **Database Provider**: Neon Database using serverless connection pooling
-- **Authentication**: Session-based authentication with connect-pg-simple for PostgreSQL session storage
-- **WebSocket**: Native WebSocket support for real-time updates and notifications
-- **AI Integration**: Groq API for AI-powered insights and automation
+- **Authentication**: Session-based authentication with connect-pg-simple
+- **Authorization**: Role-based access control (RBAC) with team-based isolation
+- **WebSocket**: Native WebSocket support for real-time updates
+- **Monitoring**: Prometheus metrics integration for observability
+- **Security**: Audit logging, permission checking, and rate limiting
+- **CI/CD**: Built-in pipeline execution with Git integration
+- **AI Integration**: Groq API for AI-powered insights
 
-## Key Components
+### Core Features
+
+#### CI/CD Pipeline
+- **Build Process**: Automated Git clone, build, and test execution
+- **Deployment**: Environment-specific deployment handling
+- **Status Tracking**: Real-time pipeline status and logs
+- **Metrics**: Build duration, success rates, and resource usage tracking
+- **Cancellation**: Pipeline execution cancellation support
+
+#### Team Management
+- **Teams**: Multi-team support with role-based access
+- **Projects**: Team-scoped project management
+- **Permissions**: Granular permission system
+- **Audit**: Comprehensive action logging and tracking
+- **Roles**: Customizable role definitions and assignments
+
+#### Monitoring
+- **Metrics**: Prometheus integration for system metrics
+- **Pipeline Stats**: Build and deployment analytics
+- **Resource Usage**: CPU, memory, and disk utilization tracking
+- **Performance**: API latency and error rate monitoring
+- **Alerts**: Threshold-based alerting (planned)
 
 ### Database Schema
-The application uses a relational PostgreSQL database with the following entities:
-- **Users**: User authentication and profile management
-- **Pipelines**: CI/CD pipeline configurations linked to repositories
-- **Builds**: Build execution records with logs and status tracking
-- **Deployments**: Deployment records with environment and configuration data
+The application uses a relational database with the following key entities:
+- **Users**: Authentication and user profile management with bcrypt password hashing
+- **Projects**: Project configuration and repository settings
+- **User Sessions**: Session storage for authentication persistence
+- **Builds**: CI pipeline execution records
+- **Deployments**: CD pipeline execution records  
+- **Agents**: Intelligent automation agents status
+- **Notifications**: System alerts and updates
 
 ### Frontend Pages
 - **Dashboard**: Overview of system status, recent builds, and AI insights

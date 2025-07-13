@@ -146,20 +146,60 @@ chmod +x k8s/deploy.sh
 
 ## Database Considerations
 
+### Required Tables
+The application requires the following core tables to be set up:
+
+1. **Users Table**: For authentication and user management
+   - Required for user registration and login
+   - Stores hashed passwords using bcrypt
+   - Manages user profiles and preferences
+
+2. **User Sessions Table**: For session management
+   - Required for express-session with connect-pg-simple
+   - Handles session persistence and cleanup
+   - Automatic session expiration handling
+
+3. **Projects Table**: For project management
+   - Stores project configurations
+   - Links projects to users
+   - Manages repository settings
+
 ### Render
 - Managed PostgreSQL included
 - Automatic backups and scaling
 - Connection pooling built-in
+- Tables automatically created via Drizzle ORM
+- Session management configured automatically
 
 ### ECS
 - Amazon RDS recommended
 - Configure security groups for database access
 - Use AWS Secrets Manager for credentials
+- Run initial migrations using Drizzle Kit
+- Configure session table manually if needed
 
 ### Kubernetes
 - External managed database (RDS, Cloud SQL, etc.)
 - Or deploy PostgreSQL in cluster using Helm charts
 - Use Kubernetes secrets for credentials
+- Apply migrations using init containers
+- Session cleanup via CronJob
+
+## Environment Variables
+
+Required environment variables for database and authentication:
+
+```bash
+# Database Configuration
+DATABASE_URL=postgresql://user:password@host:port/dbname
+
+# Session Configuration
+SESSION_SECRET=your-secure-session-secret
+
+# Optional Configuration
+SESSION_MAX_AGE=86400000  # Session duration in milliseconds (default: 24h)
+BCRYPT_SALT_ROUNDS=12     # Password hashing rounds (default: 12)
+```
 
 ## Monitoring and Logging
 

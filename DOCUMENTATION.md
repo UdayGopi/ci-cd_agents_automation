@@ -212,47 +212,108 @@
 - Activity monitoring and reporting
 - Single sign-on integration
 
+## CI/CD Pipeline Features
+- **Pipeline Execution**: Automated build, test, and deployment pipeline
+- **Build Process**: Git clone, dependency installation, build compilation
+- **Testing**: Automated test execution with result tracking
+- **Deployment**: Environment-specific deployment (staging/production)
+- **Logging**: Real-time build and deployment logs
+- **Cancellation**: Ability to cancel running pipelines
+- **Status Tracking**: Pipeline execution status and duration metrics
+
+## Monitoring & Metrics
+- **Prometheus Integration**: Built-in metrics collection
+- **Pipeline Metrics**:
+  - Total executions by status and environment
+  - Pipeline duration tracking
+  - Build artifact size monitoring
+  - Active executions count
+  - Test results tracking
+  - Deployment success/failure rates
+- **System Metrics**:
+  - CPU and memory usage
+  - API endpoint latency
+  - Error rates
+  - Resource utilization
+
+## Role-Based Access Control (RBAC)
+- **Team Management**:
+  - Team creation and member management
+  - Role assignment (admin, member)
+  - Project access control
+- **Permissions**:
+  - Granular permission system
+  - Role-based permission grants
+  - Resource-level access control
+- **Audit Logging**:
+  - User action tracking
+  - Resource access logging
+  - Change history
+  - Security event monitoring
+
 ## Database Schema
 
 ### Core Tables
 
 **Users Table**
-- Purpose: Authentication and user profile management
-- Key Fields: id, username, password, email, fullName, timestamps
-- Relationships: One-to-many with pipelines, notifications
+- Purpose: User authentication and profile management
+- Key Fields: id, username, email, password (bcrypt), fullName, timestamps
+- Relationships: One-to-many with team memberships, audit logs
+
+**Teams Table**
+- Purpose: Team organization and access control
+- Key Fields: id, name, description, timestamps
+- Relationships: One-to-many with members and projects
+
+**Team Members Table**
+- Purpose: Team membership and role management
+- Key Fields: id, teamId, userId, role, timestamps
+- Relationships: Many-to-one with teams and users
+
+**Projects Table**
+- Purpose: Project configuration and team association
+- Key Fields: id, name, description, teamId, timestamps
+- Relationships: Many-to-one with teams, one-to-many with pipelines
 
 **Pipelines Table**
-- Purpose: CI/CD pipeline configuration storage
-- Key Fields: id, name, repository, branch, status, configuration, userId
-- Relationships: One-to-many with builds, deployments
+- Purpose: CI/CD pipeline configuration
+- Key Fields: id, name, projectId, repository, timestamps
+- Relationships: Many-to-one with projects, one-to-many with executions
 
-**Builds Table**
-- Purpose: Build execution records and logs
-- Key Fields: id, pipelineId, buildNumber, status, duration, logs, timestamps
-- Relationships: Many-to-one with pipelines, one-to-many with deployments
+**Pipeline Executions Table**
+- Purpose: Pipeline execution records
+- Key Fields: id, pipelineId, status, branch, environment, timestamps, logs
+- Relationships: Many-to-one with pipelines
 
-**Deployments Table**
-- Purpose: Deployment records and environment tracking
-- Key Fields: id, buildId, pipelineId, environment, status, configuration
-- Relationships: Many-to-one with builds and pipelines
+**Permissions Table**
+- Purpose: System permission definitions
+- Key Fields: id, name, description, timestamps
+- Relationships: One-to-many with role permissions
 
-**Agents Table**
-- Purpose: Intelligent agent status and configuration
-- Key Fields: id, name, type, status, configuration, metrics, timestamps
-- Relationships: Standalone with metric tracking
+**Role Permissions Table**
+- Purpose: Role-based permission assignments
+- Key Fields: id, role, permissionId, timestamps
+- Relationships: Many-to-one with permissions
 
-**AI Insights Table**
-- Purpose: AI-generated recommendations and analysis
-- Key Fields: id, type, title, content, severity, timestamp, pipelineId
-- Relationships: Many-to-one with pipelines (optional)
+**Audit Logs Table**
+- Purpose: System activity tracking
+- Key Fields: id, userId, action, resourceType, resourceId, details, timestamps
+- Relationships: Many-to-one with users
 
 ## API Endpoints
 
 ### Authentication Endpoints
-- `POST /api/auth/register` - User registration
-- `POST /api/auth/login` - User authentication
-- `GET /api/auth/me` - Current user profile
-- `POST /api/auth/logout` - Session termination
+- `POST /api/auth/register` - User registration with password hashing
+- `POST /api/auth/login` - User authentication with session creation
+- `GET /api/auth/me` - Current user profile retrieval
+- `POST /api/auth/logout` - Session termination and cleanup
+
+### Project Management
+- `GET /api/projects` - List user's projects
+- `POST /api/projects` - Create new project
+- `GET /api/projects/:id` - Get project details
+- `PUT /api/projects/:id` - Update project configuration
+- `DELETE /api/projects/:id` - Delete project
 
 ### Pipeline Management
 - `GET /api/pipelines` - List all pipelines
@@ -289,6 +350,27 @@
 - `GET /api/health` - Health check endpoint
 - `GET /api/metrics` - Performance metrics
 
+### Pipeline Management
+- `POST /api/pipelines/:id/execute` - Execute pipeline with branch and environment
+- `POST /api/pipelines/:id/cancel` - Cancel running pipeline execution
+- `GET /api/pipelines/:id/logs` - Get pipeline execution logs
+- `GET /api/pipelines/:id/status` - Get pipeline execution status
+
+### Team Management
+- `GET /api/teams` - List teams
+- `POST /api/teams` - Create team
+- `GET /api/teams/:id` - Get team details
+- `PUT /api/teams/:id` - Update team
+- `DELETE /api/teams/:id` - Delete team
+- `POST /api/teams/:id/members` - Add team member
+- `DELETE /api/teams/:id/members/:userId` - Remove team member
+- `PUT /api/teams/:id/members/:userId/role` - Update member role
+
+### Monitoring
+- `GET /api/metrics` - Prometheus metrics endpoint
+- `GET /api/health` - System health check
+- `GET /api/stats` - System statistics
+
 ## Frontend Components
 
 ### Layout Components
@@ -313,6 +395,19 @@
 - **InsightCards**: Recommendation display
 - **AnalyticsCharts**: Performance visualization
 - **OptimizationSuggestions**: Actionable improvements
+
+### Authentication Components
+- **Auth Page**: Tab-based login/signup interface
+- **ProtectedLayout**: Route protection wrapper
+- **AuthContext**: Authentication state management
+- **LoginForm**: User login form with validation
+- **SignupForm**: User registration form with validation
+
+### Project Components
+- **ProjectDialog**: Project creation modal
+- **ProjectList**: Project selection dropdown
+- **ProjectForm**: Project configuration form
+- **ProjectCard**: Project information display
 
 ## AI Integration
 
@@ -370,28 +465,32 @@
 
 ### Authentication & Authorization
 - **Session Management**: Secure session storage in PostgreSQL
-- **Password Security**: Hashed password storage
-- **CSRF Protection**: Cross-site request forgery prevention
-- **Rate Limiting**: API request throttling
+- **Password Security**: Bcrypt hashing for passwords
+- **RBAC**: Role-based access control system
+- **Team Access**: Team-based resource isolation
+- **Audit Logging**: Comprehensive activity tracking
 
 ### Data Protection
-- **Input Validation**: Zod schema validation
-- **SQL Injection Prevention**: Parameterized queries via Drizzle ORM
-- **XSS Protection**: Content Security Policy headers
-- **HTTPS**: TLS encryption for all communications
+- **Input Validation**: Request validation
+- **SQL Injection Prevention**: Parameterized queries
+- **XSS Protection**: Content security headers
+- **CSRF Protection**: Token validation
+- **Rate Limiting**: API request throttling
 
-## Performance Optimizations
+### Development Guidelines
 
-### Frontend
-- **Code Splitting**: Dynamic imports for route-based splitting
-- **Caching**: React Query for efficient data caching
-- **Bundle Optimization**: Tree shaking and minification
-- **Image Optimization**: SVG icons and optimized assets
+#### Code Organization
+- **Frontend**: React components and pages
+- **Backend**: Express routes and services
+- **Database**: Drizzle ORM with migrations
+- **Monitoring**: Prometheus metrics
+- **Security**: RBAC middleware and audit logging
 
-### Backend
-- **Database Indexing**: Optimized queries with proper indexes
-- **Connection Pooling**: Efficient database connection management
-- **Response Compression**: Gzip compression for API responses
-- **Caching Strategy**: Redis integration for session and data caching
+#### Testing Requirements
+- **Unit Tests**: Component and service testing
+- **Integration Tests**: API endpoint testing
+- **E2E Tests**: Pipeline execution testing
+- **Security Tests**: Permission validation
+- **Performance Tests**: Load and stress testing
 
 This documentation provides a comprehensive overview of PipelineForge's tools, features, and implementation details. Each component serves a specific purpose in creating a robust, intelligent CI/CD automation platform.
