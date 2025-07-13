@@ -13,10 +13,12 @@ interface BuildConfig {
 }
 
 interface BuildStatus {
+  id: string;
   status: string;
-  logs?: string;
+  logs: string | null;
   startTime?: Date;
   endTime?: Date;
+  error?: string;
 }
 
 interface BuildPerformance {
@@ -59,6 +61,7 @@ class AutoBuildAgent {
       if (!build) throw new Error('Build not found');
 
       return {
+        id: build.id.toString(),
         status: build.status,
         logs: build.logs,
         startTime: build.startTime || undefined,
